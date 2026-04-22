@@ -7,7 +7,7 @@ import sys
 from aiogram import Bot, Dispatcher
 
 from bot.config import TELEGRAM_BOT_TOKEN
-from bot.handlers import chat, model, reset, start, vision, voice
+from bot.handlers import chat, model, reasoning, reset, start, vision, voice
 from bot.providers.registry import load_registry
 from bot.storage.session import Sessions
 
@@ -45,6 +45,7 @@ async def main() -> None:
     dp.include_router(start.register(sessions, registry))
     dp.include_router(reset.register(sessions))
     dp.include_router(model.register(sessions, registry))
+    dp.include_router(reasoning.register(sessions))
     dp.include_router(vision.register(sessions, registry))
     dp.include_router(voice.register(sessions, registry))
     dp.include_router(chat.register(sessions, registry))  # text handler last

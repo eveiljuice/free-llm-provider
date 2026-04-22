@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -33,6 +34,9 @@ GLOBAL_FALLBACK_CHAIN: list[tuple[str, str]] = [
 # When a provider rejects with 429/5xx we skip it for this many seconds.
 COOLDOWN_SECS = 60.0
 _cooldown: dict[str, float] = {}
+_REASONING_BLOCK_RE = re.compile(r"<(think|thinking)>.*?</\1>", re.IGNORECASE | re.DOTALL)
+_REASONING_OPEN_RE = re.compile(r"<(think|thinking)>", re.IGNORECASE)
+_REASONING_TAG_RE = re.compile(r"</?(think|thinking)>", re.IGNORECASE)
 
 
 @dataclass
@@ -66,6 +70,43 @@ def _is_retryable(exc: BaseException) -> bool:
         code = getattr(exc, "status_code", None) or 0
         return code == 429 or 500 <= code < 600
     return False
+
+
+def _strip_reasoning_blocks(text: str) -> str:
+    cleaned = _REASONING_BLOCK_RE.sub("", text)
+    last_open: int | None = None
+    for match in _REASONING_OPEN_RE.finditer(cleaned):
+        last_open = match.start()
+    if last_open is not None:
+        tail = cleaned[last_open:]
+        if not _REASONING_BLOCK_RE.search(tail):
+            cleaned = cleaned[:last_open]
+    cleaned = _REASONING_TAG_RE.sub("", cleaned)
+    return cleaned.strip()
+
+
+def _display_text(text: str, *, show_reasoning: bool) -> str:
+    if show_reasoning:
+        return (
+            text.replace("<think>", "💭 Размышления:\n")
+            .replace("</think>", "\n\n")
+            .replace("<thinking>", "💭 Размышления:\n")
+            .replace("</thinking>", "\n\n")
+            .strip()
+        )
+    return _strip_reasoning_blocks(text)
+
+
+def _request_kwargs(
+    provider: Provider,
+    model: Model,
+    *,
+    reasoning_enabled: bool,
+) -> dict[str, Any]:
+    mid = model.id.lower()
+    if provider.name == "GitHub Models" and mid.startswith(("o1", "o3", "o4")):
+        return {"reasoning_effort": "medium" if reasoning_enabled else "low"}
+    return {}
 
 
 def _pick_candidates(
@@ -113,26 +154,38 @@ async def _stream_one(
     model: Model,
     messages: list[dict[str, Any]],
     editor: StreamingEditor,
+    *,
+    reasoning_enabled: bool,
+    show_reasoning: bool,
 ) -> str:
     client = get_client(provider)
+    started = editor.text
     stream = await client.chat.completions.create(
         model=model.id,
         messages=messages,
         stream=True,
+        **_request_kwargs(
+            provider,
+            model,
+            reasoning_enabled=reasoning_enabled,
+        ),
     )
-    started = editor.text
     collected = ""
     async for chunk in stream:
         if not chunk.choices:
             continue
         delta = chunk.choices[0].delta
-        piece = (delta.content or "") if delta else ""
+        piece = ((delta.content or "") if delta else "") or (
+            (delta.refusal or "") if delta else ""
+        )
         if piece:
             collected += piece
-            await editor.push(piece)
+            await editor.set(
+                started + _display_text(collected, show_reasoning=show_reasoning)
+            )
+    await editor.set(started + _display_text(collected, show_reasoning=show_reasoning))
     await editor.finish()
-    # The answer text (without any earlier notification prefix).
-    return editor.text[len(started) :] if started else collected or editor.text
+    return _strip_reasoning_blocks(collected)
 
 
 async def chat_complete_with_fallback(
@@ -142,6 +195,8 @@ async def chat_complete_with_fallback(
     primary: tuple[str, str],
     editor: StreamingEditor,
     require_vision: bool = False,
+    reasoning_enabled: bool = False,
+    show_reasoning: bool = False,
 ) -> CompletionResult:
     """Stream a completion, falling back through GLOBAL_FALLBACK_CHAIN on errors."""
     candidates = _pick_candidates(registry, primary, require_vision=require_vision)
@@ -163,7 +218,14 @@ async def chat_complete_with_fallback(
             )
         t0 = time.monotonic()
         try:
-            text = await _stream_one(prov, model, messages, editor)
+            text = await _stream_one(
+                prov,
+                model,
+                messages,
+                editor,
+                reasoning_enabled=reasoning_enabled,
+                show_reasoning=show_reasoning,
+            )
             log.info(
                 "ok %s/%s in %.1fs", prov.name, model.id, time.monotonic() - t0
             )

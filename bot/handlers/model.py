@@ -11,6 +11,7 @@ from aiogram.types import (
 
 from bot.providers.registry import Provider
 from bot.storage.session import Sessions
+from bot.utils.reply_keyboard import BUTTON_MODEL
 
 router = Router(name="model")
 
@@ -51,6 +52,7 @@ def _models_kb(registry: list[Provider], prov_idx: int) -> InlineKeyboardMarkup:
 
 def register(sessions: Sessions, registry: list[Provider]) -> Router:
     @router.message(Command("model"))
+    @router.message(F.text == BUTTON_MODEL)
     async def model_cmd(message: Message) -> None:
         await message.answer(
             "Выбери провайдера:", reply_markup=_providers_kb(registry)

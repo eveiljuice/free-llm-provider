@@ -25,7 +25,12 @@ PROVIDER_ENV_VAR: dict[str, str] = {
 }
 
 # Providers whose APIs aren't OpenAI-compatible — skipped from /model for MVP.
-UNSUPPORTED_PROVIDERS: set[str] = {"Cloudflare Workers AI", "Ollama Cloud"}
+UNSUPPORTED_PROVIDERS: set[str] = {
+    "Cloudflare Workers AI",
+    "Ollama Cloud",
+    # HF Serverless Inference is not OpenAI-compatible in this MVP wiring.
+    "Hugging Face",
+}
 
 # Providers that work without an API key (degraded / anonymous tier).
 KEYLESS_PROVIDERS: set[str] = {"LLM7.io"}

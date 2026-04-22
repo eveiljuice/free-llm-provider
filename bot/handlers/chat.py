@@ -27,6 +27,8 @@ def register(sessions: Sessions, registry: list[Provider]) -> Router:
             messages=session.messages(),
             primary=(session.provider_name, session.model_id),
             editor=editor,
+            reasoning_enabled=session.reasoning_enabled,
+            show_reasoning=session.show_reasoning,
         )
         if result.ok and result.text:
             session.history.append({"role": "assistant", "content": result.text})

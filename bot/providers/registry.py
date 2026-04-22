@@ -14,6 +14,26 @@ from bot.config import (
 
 log = logging.getLogger(__name__)
 
+GITHUB_MODELS_ALLOWLIST: set[str] = {
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4o",
+    "DeepSeek-R1",
+}
+
+GROQ_MODELS_ALLOWLIST: set[str] = {
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+}
+
+LLM7_MODELS_ALLOWLIST: set[str] = {
+    "deepseek-r1-0528",
+    "deepseek-v3-0324",
+    "gemini-2.5-flash-lite",
+    "gpt-4o-mini",
+    "mistral-small-3.1-24b",
+}
+
 
 @dataclass(frozen=True)
 class Model:
@@ -70,6 +90,16 @@ def _is_chat_model(raw: dict) -> bool:
     return True
 
 
+def _provider_specific_keep(provider_name: str, raw_model: dict) -> bool:
+    if provider_name == "GitHub Models":
+        return raw_model.get("id") in GITHUB_MODELS_ALLOWLIST
+    if provider_name == "Groq":
+        return raw_model.get("id") in GROQ_MODELS_ALLOWLIST
+    if provider_name == "LLM7.io":
+        return raw_model.get("id") in LLM7_MODELS_ALLOWLIST
+    return True
+
+
 def load_registry(path: Path | str | None = None) -> list[Provider]:
     """Parse data.json into a list of available Providers with chat models."""
     from bot.config import DATA_JSON_PATH
@@ -94,6 +124,8 @@ def load_registry(path: Path | str | None = None) -> list[Provider]:
         models: list[Model] = []
         for m in prov.get("models", []):
             if _is_placeholder_model(m) or not _is_chat_model(m):
+                continue
+            if not _provider_specific_keep(name, m):
                 continue
             models.append(
                 Model(

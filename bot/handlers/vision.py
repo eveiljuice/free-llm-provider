@@ -63,6 +63,8 @@ def register(sessions: Sessions, registry: list[Provider]) -> Router:
             primary=(session.provider_name, session.model_id),
             editor=editor,
             require_vision=True,
+            reasoning_enabled=session.reasoning_enabled,
+            show_reasoning=session.show_reasoning,
         )
         if result.ok and result.text:
             session.history.append({"role": "assistant", "content": result.text})

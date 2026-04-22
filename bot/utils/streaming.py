@@ -38,6 +38,13 @@ class StreamingEditor:
             return
         await self._flush()
 
+    async def set(self, text: str) -> None:
+        self._buffer = text or ""
+        now = time.monotonic()
+        if now - self._last_edit_at < MIN_INTERVAL:
+            return
+        await self._flush()
+
     async def prefix(self, line: str) -> None:
         """Prepend a one-off notification line (e.g. fallback notice)."""
         if not line:
@@ -79,4 +86,4 @@ class StreamingEditor:
             except TelegramBadRequest as e:
                 # "message is not modified" or formatting issues — ignore
                 if "not modified" not in str(e):
-                    log.debug("edit_message_text failed: %s", e)
+                    log.warning("edit_message_text failed: %s", e)

@@ -15,8 +15,29 @@
 
 ## Contents
 
+- [What's in this repo](#whats-in-this-repo)
 - [Provider APIs](#provider-apis)
 - [Inference providers](#inference-providers)
+
+## What's in this repo
+
+This repository now has two layers:
+
+1. **`data.json` + root README** — curated list of free / permanent-free LLM APIs.
+2. **[`bot/`](bot/README.md)** — a Telegram bot that uses this registry as a model source.
+
+### Telegram bot
+
+The bot in [`bot/`](bot/README.md) already includes:
+- reply keyboard controls under the message input
+- provider / model picker
+- streaming responses
+- voice transcription via Groq Whisper
+- vision for photos
+- reasoning toggles (`/thinking`, `/showthinking`)
+- filtering of broken model ids from the user-facing menu
+
+Quick link: **[bot/README.md](bot/README.md)**
 
 ## Provider APIs
 
