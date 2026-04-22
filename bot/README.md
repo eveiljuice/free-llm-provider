@@ -18,6 +18,7 @@ Telegram-бот поверх реестра из [`../data.json`](../data.json),
 - **Reply keyboard** вместо чисто slash UX:
   - `🤖 Модель`
   - `📡 Провайдеры`
+  - `🧠 Memory`
   - `🧠 Reasoning: ON/OFF`
   - `💭 Thoughts: ON/OFF`
   - `⚙️ Reasoning`
@@ -29,9 +30,11 @@ Telegram-бот поверх реестра из [`../data.json`](../data.json),
   - `progress.txt` как append-only log
   - `AGENTS.md` для distilled memory
   - `history.jsonl` для восстановления контекста после рестарта
+  - auto-distillation старой истории в `AGENTS.md`
 - **Команды памяти**:
   - `/remember <note>`
   - `/memory`
+  - `/memoryexport`
 - **История диалога** переживает рестарты и собирается из файлов, а не только из RAM.
 - **Vision** для фото, с автоматическим fallback на vision-capable модель.
 - **Voice / audio** через Groq Whisper.

@@ -188,6 +188,49 @@ async def _stream_one(
     return _strip_reasoning_blocks(collected)
 
 
+def _response_text(response: Any) -> str:
+    choices = getattr(response, "choices", None) or []
+    if not choices:
+        return ""
+    message = getattr(choices[0], "message", None)
+    content = getattr(message, "content", "") if message else ""
+    if isinstance(content, str):
+        return _strip_reasoning_blocks(content)
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, dict):
+                if item.get("type") == "text" and item.get("text"):
+                    parts.append(str(item["text"]))
+            else:
+                text = getattr(item, "text", None)
+                if text:
+                    parts.append(str(text))
+        return _strip_reasoning_blocks("\n".join(parts))
+    return _strip_reasoning_blocks(str(content))
+
+
+async def _complete_one(
+    provider: Provider,
+    model: Model,
+    messages: list[dict[str, Any]],
+    *,
+    reasoning_enabled: bool,
+) -> str:
+    client = get_client(provider)
+    response = await client.chat.completions.create(
+        model=model.id,
+        messages=messages,
+        stream=False,
+        **_request_kwargs(
+            provider,
+            model,
+            reasoning_enabled=reasoning_enabled,
+        ),
+    )
+    return _response_text(response)
+
+
 async def chat_complete_with_fallback(
     *,
     registry: list[Provider],
@@ -252,4 +295,49 @@ async def chat_complete_with_fallback(
         "😔 Все провайдеры недоступны. Попробуй позже или смени модель через /model.\n\n"
     )
     await editor.finish()
+    return CompletionResult("", primary[0], primary[1], ok=False)
+
+
+async def chat_complete_text_with_fallback(
+    *,
+    registry: list[Provider],
+    messages: list[dict[str, Any]],
+    primary: tuple[str, str],
+    require_vision: bool = False,
+    reasoning_enabled: bool = False,
+) -> CompletionResult:
+    candidates = _pick_candidates(registry, primary, require_vision=require_vision)
+    if not candidates:
+        return CompletionResult("", primary[0], primary[1], ok=False)
+
+    for prov, model in candidates:
+        if _in_cooldown(prov.name):
+            log.info("skip %s (cooldown)", prov.name)
+            continue
+        t0 = time.monotonic()
+        try:
+            text = await _complete_one(
+                prov,
+                model,
+                messages,
+                reasoning_enabled=reasoning_enabled,
+            )
+            log.info(
+                "ok text %s/%s in %.1fs", prov.name, model.id, time.monotonic() - t0
+            )
+            return CompletionResult(text, prov.name, model.id, ok=True)
+        except Exception as exc:  # noqa: BLE001
+            status = getattr(exc, "status_code", None)
+            label = type(exc).__name__
+            log.warning(
+                "fail text %s/%s (%s) in %.1fs",
+                prov.name,
+                model.id,
+                label,
+                time.monotonic() - t0,
+            )
+            if _is_retryable(exc):
+                _cool_down(prov.name)
+            continue
+
     return CompletionResult("", primary[0], primary[1], ok=False)

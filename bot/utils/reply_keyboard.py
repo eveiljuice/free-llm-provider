@@ -6,6 +6,7 @@ from bot.storage.session import UserSession
 
 BUTTON_MODEL = "🤖 Модель"
 BUTTON_PROVIDERS = "📡 Провайдеры"
+BUTTON_MEMORY = "🧠 Memory"
 BUTTON_REASONING_STATUS = "⚙️ Reasoning"
 BUTTON_RESET = "♻️ Сброс"
 BUTTON_HELP = "ℹ️ Помощь"
@@ -39,7 +40,10 @@ def main_reply_keyboard(session: UserSession) -> ReplyKeyboardMarkup:
                 KeyboardButton(text=show_reasoning_button(session)),
             ],
             [
+                KeyboardButton(text=BUTTON_MEMORY),
                 KeyboardButton(text=BUTTON_REASONING_STATUS),
+            ],
+            [
                 KeyboardButton(text=BUTTON_RESET),
                 KeyboardButton(text=BUTTON_HELP),
             ],

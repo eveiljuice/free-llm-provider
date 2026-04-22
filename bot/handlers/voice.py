@@ -64,6 +64,7 @@ def register(sessions: Sessions, registry: list[Provider]) -> Router:
         )
         if result.ok and result.text:
             sessions.add_assistant_turn(message.from_user.id, result.text)
+            await sessions.maybe_auto_distill(message.from_user.id, registry)
         else:
             sessions.rollback_user_turn(message.from_user.id)
 

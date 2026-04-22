@@ -21,7 +21,7 @@ def _greeting(registry: list[Provider]) -> str:
         "",
         "Основные действия вынесены в кнопки под полем ввода.",
         "Слеш-команды тоже остались как запасной вариант.",
-        "Durable memory: /remember <note>, /memory.",
+        "Durable memory: кнопка 🧠 Memory, /remember <note>, /memory, /memoryexport.",
         "",
         "Шли текст, фото (vision) или голосовое (распознаётся через Groq Whisper).",
         "При ошибке провайдера бот автоматически переключится на резервную модель.",
