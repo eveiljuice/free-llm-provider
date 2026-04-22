@@ -36,6 +36,7 @@ The bot inside [`bot/`](bot/README.md) turns that registry into an actual produc
 - voice transcription via Groq Whisper
 - reasoning toggles
 - Telegram reply keyboard UX
+- Ralph-style durable user memory on disk (`prd.json`, `progress.txt`, `AGENTS.md`, `history.jsonl`)
 
 ---
 

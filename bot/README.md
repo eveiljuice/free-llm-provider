@@ -11,6 +11,7 @@ Telegram-бот поверх реестра из [`../data.json`](../data.json),
 - fallback-цепочка между провайдерами
 - toggles для reasoning и показа thoughts
 - фильтрация битых моделей из меню
+- Ralph-style durable memory для каждого пользователя
 
 ## Что умеет
 
@@ -23,7 +24,15 @@ Telegram-бот поверх реестра из [`../data.json`](../data.json),
   - `♻️ Сброс`
   - `ℹ️ Помощь`
 - **Стриминг ответа** через редактирование placeholder-сообщения.
-- **История диалога** в памяти процесса, `/reset` чистит её.
+- **Durable memory** в стиле Ralph для каждого пользователя:
+  - `prd.json` с machine-readable session state
+  - `progress.txt` как append-only log
+  - `AGENTS.md` для distilled memory
+  - `history.jsonl` для восстановления контекста после рестарта
+- **Команды памяти**:
+  - `/remember <note>`
+  - `/memory`
+- **История диалога** переживает рестарты и собирается из файлов, а не только из RAM.
 - **Vision** для фото, с автоматическим fallback на vision-capable модель.
 - **Voice / audio** через Groq Whisper.
 - **Reasoning controls**:
@@ -111,9 +120,12 @@ WantedBy=multi-user.target
 
 Важно: не все провайдеры из списка сейчас включены в живое меню. Часть требует отдельной интеграции или валидации model ids.
 
+Дополнительно:
+- `MEMORY_ROOT` — директория для durable memory (по умолчанию `bot/runtime-memory/users`)
+
 ## Текущие ограничения
 
-- **State пока в памяти процесса**. После рестарта история и user settings теряются.
+- **Durable memory file-based**, но пока без Redis/Postgres и без сложной конкурентной синхронизации.
 - **Hugging Face временно выключен в MVP**, потому что его serverless endpoint не OpenAI-compatible в текущей реализации.
 - **Cloudflare Workers AI** и **Ollama Cloud** пропущены, потому что не ложатся в текущий OpenAI-compatible слой.
 - **Централизованные ключи**: все пользователи делят лимиты владельца.
@@ -121,7 +133,8 @@ WantedBy=multi-user.target
 ## Что логично делать дальше
 
 - healthcheck моделей на старте
-- persistent storage (Redis / SQLite / Postgres)
+- richer distillation rules for AGENTS.md
+- persistent storage backend (Redis / SQLite / Postgres) поверх текущего file-based memory
 - BYOK
 - OpenRouter / Gemini / Mistral интеграции с live validation
 - inline actions вроде regenerate / shorter / smarter
@@ -140,6 +153,7 @@ bot/
 │   └── transcribe.py
 ├── handlers/
 │   ├── chat.py
+│   ├── memory.py
 │   ├── model.py
 │   ├── reasoning.py
 │   ├── reset.py

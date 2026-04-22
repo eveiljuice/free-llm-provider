@@ -7,7 +7,7 @@ import sys
 from aiogram import Bot, Dispatcher
 
 from bot.config import TELEGRAM_BOT_TOKEN
-from bot.handlers import chat, model, reasoning, reset, start, vision, voice
+from bot.handlers import chat, memory, model, reasoning, reset, start, vision, voice
 from bot.providers.registry import load_registry
 from bot.storage.session import Sessions
 
@@ -43,6 +43,7 @@ async def main() -> None:
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
     dp = Dispatcher()
     dp.include_router(start.register(sessions, registry))
+    dp.include_router(memory.register(sessions))
     dp.include_router(reset.register(sessions))
     dp.include_router(model.register(sessions, registry))
     dp.include_router(reasoning.register(sessions))

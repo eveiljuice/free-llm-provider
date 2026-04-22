@@ -48,7 +48,7 @@ def register(sessions: Sessions, registry: list[Provider]) -> Router:
 
         await notice.edit_text(f"🎙 → «{transcript}»")
 
-        session.history.append({"role": "user", "content": transcript})
+        sessions.add_user_turn(message.from_user.id, transcript)
 
         placeholder = await message.answer("⏳ …")
         editor = StreamingEditor(
@@ -63,11 +63,8 @@ def register(sessions: Sessions, registry: list[Provider]) -> Router:
             show_reasoning=session.show_reasoning,
         )
         if result.ok and result.text:
-            session.history.append({"role": "assistant", "content": result.text})
+            sessions.add_assistant_turn(message.from_user.id, result.text)
         else:
-            try:
-                session.history.pop()
-            except IndexError:
-                pass
+            sessions.rollback_user_turn(message.from_user.id)
 
     return router

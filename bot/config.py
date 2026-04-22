@@ -50,6 +50,10 @@ DATA_JSON_PATH: Path = Path(
 
 HISTORY_LIMIT: int = int(os.getenv("HISTORY_LIMIT", "20"))
 
+MEMORY_ROOT: Path = Path(
+    os.getenv("MEMORY_ROOT") or (Path(__file__).parent / "runtime-memory" / "users")
+).resolve()
+
 SYSTEM_PROMPT: str | None = os.getenv("SYSTEM_PROMPT") or None
 
 
